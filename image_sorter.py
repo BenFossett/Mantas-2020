@@ -1,0 +1,134 @@
+import argparse
+import tkinter as tk
+import numpy as np
+from tkinter import *
+import os
+import json
+from shutil import copyfile, move
+from PIL import ImageTk, Image
+from scipy import misc
+
+class App:
+    def __init__(self, window, window_title, image_paths, continue_true):
+        self.window = window
+        self.window.title(window_title)
+        self.annotations = json.load(open('mantaAnnotations.json'))
+        self.annotations = self.annotations["annotations"][0]
+
+        if continue_true:
+            self.data =json.load(open('data.json'))
+            self.index = self.data['position']
+        else:
+            self.data = {}
+            self.data['mantas'] = []
+            self.data['position'] = 0
+            self.index = 0
+
+        frame = tk.Frame(window)
+        frame.grid()
+
+        print(self.index)
+
+        # Start at the first file name
+        self.n_paths = len(image_paths)
+
+        self.image_raw = None
+        self.image = None
+        self.image_panel = tk.Label(frame)
+
+        self.show_image(self.annotations[self.index])
+
+        self.resolution = IntVar()
+        check1 = Checkbutton(frame, text="Resolution", variable=self.resolution)
+
+        self.lighting = IntVar()
+        check2 = Checkbutton(frame, text="Lighting and Conditions", variable=self.lighting)
+
+        self.pattern = IntVar()
+        check3 = Checkbutton(frame, text="Pattern Quality", variable=self.pattern)
+
+        self.pose = IntVar()
+        check4 = Checkbutton(frame, text="Manta Pose", variable=self.pose)
+
+        # Add progress label
+        progress_string = "%d/%d" % (self.index, self.n_paths)
+        self.progress_label = tk.Label(frame, text=progress_string, width=10)
+
+        # Place buttons in grid
+        check1.grid(row=0, column=0, sticky='we')
+        check2.grid(row=0, column=1, sticky='we')
+        check3.grid(row=0, column=2, sticky='we')
+        check4.grid(row=0, column=3, sticky='we')
+        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=0, column=4, sticky='we')
+
+
+        # Place progress label in grid
+        self.progress_label.grid(row=0, column=5, sticky='we')
+
+        # Place the image in grid
+        self.image_panel.grid(row=1, column=0, columnspan=6, sticky='we')
+
+    def next_image(self):
+        self.index +=1
+        self.data['position'] = self.index
+        self.progress_label.configure(text="%d/%d" % (self.index, self.n_paths))
+        self.resolution.set(0)
+        self.lighting.set(0)
+        self.pattern.set(0)
+        self.pose.set(0)
+
+        if self.index < 10:
+            self.show_image(self.annotations[self.index])
+        else:
+            with open('data.json', 'w') as outfile:
+                json.dump(self.data, outfile, indent=4)
+            self.window.quit()
+
+    def show_image(self, annotation):
+        path = "mantas/" + annotation["uniqueImageFileName"]
+        image = self._load_image(path, annotation)
+        self.image = image
+        #self.image = ImageTk.PhotoImage(image)
+        self.image_panel.configure(image=self.image)
+
+    def confirm(self):
+        image_id = self.annotations[self.index]["uniqueImageFileName"]
+        self.data['mantas'].append({
+            'image_id': image_id,
+            'resolution': self.resolution.get(),
+            'lighting': self.lighting.get(),
+            'pattern': self.pattern.get(),
+            'pose': self.pose.get()
+        })
+        self.next_image()
+
+    @staticmethod
+    def _load_image(path, annotation, size=(512,512,3)):
+        box = np.array(annotation["box_xmin_ymin_xmax_ymax"])
+        box = box.astype(np.int32)
+        box = box - 1
+        image = misc.imread(path)
+        image = image[box[1]:box[3], box[0]:box[2], :]
+        image = misc.imresize(image, size)
+        image = ImageTk.PhotoImage(Image.fromarray(image))
+        return image
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--folder', help='Input folder containing the images', default='mantas/')
+    parser.add_argument('--continue_true', help='Continue from where you left off', action='store_true')
+    args = parser.parse_args()
+
+    input_folder = args.folder
+    continue_true = args.continue_true
+
+    image_paths = []
+    for file in os.listdir(input_folder):
+        if file.endswith(".jpg") or file.endswith(".jpeg"):
+            path = os.path.join(input_folder, file)
+            image_paths.append(path)
+
+    window = tk.Tk()
+    app = App(window, "Manta Sort", image_paths, continue_true)
+    window.mainloop()
