@@ -15,8 +15,8 @@ class App:
         self.annotations = json.load(open('mantaAnnotations.json'))
         self.annotations = self.annotations["annotations"][0]
 
-        if continue_true:
-            self.data =json.load(open('data.json'))
+        if continue_true and os.path.exists('data.json'):
+            self.data = json.load(open('data.json'))
             self.index = self.data['position']
         else:
             self.data = {}
@@ -50,6 +50,9 @@ class App:
         self.pose = IntVar()
         check4 = Checkbutton(frame, text="Manta Pose", variable=self.pose)
 
+        for i in range(1, 5):
+            frame.bind(str(i), self.check)
+
         # Add progress label
         progress_string = "%d/%d" % (self.index, self.n_paths)
         self.progress_label = tk.Label(frame, text=progress_string, width=10)
@@ -59,14 +62,37 @@ class App:
         check2.grid(row=0, column=1, sticky='we')
         check3.grid(row=0, column=2, sticky='we')
         check4.grid(row=0, column=3, sticky='we')
-        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=0, column=4, sticky='we')
+        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=1, column=0, sticky='we')
+        tk.Button(frame, text="Save and Exit", width=10, height=1, command=self.exit).grid(row=1,column=5)
 
+        frame.bind("<Return>", self.confirm)
+        frame.bind("<Escape>", self.exit)
 
         # Place progress label in grid
         self.progress_label.grid(row=0, column=5, sticky='we')
 
         # Place the image in grid
-        self.image_panel.grid(row=1, column=0, columnspan=6, sticky='we')
+        self.image_panel.grid(row=2, column=0, columnspan=6, sticky='we')
+        frame.focus_set()
+
+    def check(self, event):
+        key = int(event.char)
+        if key == 1:
+            val = self.resolution.get()
+            new_val = abs(val - 1)
+            self.resolution.set(new_val)
+        if key == 2:
+            val = self.lighting.get()
+            new_val = abs(val - 1)
+            self.lighting.set(new_val)
+        if key == 3:
+            val = self.pattern.get()
+            new_val = abs(val - 1)
+            self.pattern.set(new_val)
+        if key == 4:
+            val = self.pose.get()
+            new_val = abs(val - 1)
+            self.pose.set(new_val)
 
     def next_image(self):
         self.index +=1
@@ -77,7 +103,7 @@ class App:
         self.pattern.set(0)
         self.pose.set(0)
 
-        if self.index < 10:
+        if self.index < self.n_paths:
             self.show_image(self.annotations[self.index])
         else:
             with open('data.json', 'w') as outfile:
@@ -91,7 +117,7 @@ class App:
         #self.image = ImageTk.PhotoImage(image)
         self.image_panel.configure(image=self.image)
 
-    def confirm(self):
+    def confirm(self, event=None):
         image_id = self.annotations[self.index]["uniqueImageFileName"]
         self.data['mantas'].append({
             'image_id': image_id,
@@ -113,6 +139,11 @@ class App:
         image = ImageTk.PhotoImage(Image.fromarray(image))
         return image
 
+    def exit(self, event=None):
+        with open('data.json', 'w') as outfile:
+            json.dump(self.data, outfile, indent=4)
+        self.window.quit()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -130,5 +161,5 @@ if __name__ == "__main__":
             image_paths.append(path)
 
     window = tk.Tk()
-    app = App(window, "Manta Sort", image_paths, continue_true)
+    app = App(window, "Manta Quality Labelling", image_paths, continue_true)
     window.mainloop()
