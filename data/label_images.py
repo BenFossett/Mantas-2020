@@ -119,8 +119,10 @@ class App:
 
     def confirm(self, event=None):
         image_id = self.annotations[self.index]["uniqueImageFileName"]
+        image_class = self.annotations[self.index]["individualId"]
         self.data['mantas'].append({
             'image_id': image_id,
+            'image_class': image_class,
             'resolution': self.resolution.get(),
             'lighting': self.lighting.get(),
             'pattern': self.pattern.get(),
@@ -133,10 +135,14 @@ class App:
         box = np.array(annotation["box_xmin_ymin_xmax_ymax"])
         box = box.astype(np.int32)
         box = box - 1
+
         image = misc.imread(path)
         image = image[box[1]:box[3], box[0]:box[2], :]
         image = misc.imresize(image, size)
-        image = ImageTk.PhotoImage(Image.fromarray(image))
+        image = Image.fromarray(image)
+
+        image.save('mantas_cropped/' + str(annotation["uniqueImageFileName"]))
+        image = ImageTk.PhotoImage(image)
         return image
 
     def exit(self, event=None):
@@ -159,6 +165,9 @@ if __name__ == "__main__":
         if file.endswith(".jpg") or file.endswith(".jpeg"):
             path = os.path.join(input_folder, file)
             image_paths.append(path)
+
+    if not os.path.exists('mantas_cropped/'):
+        os.makedirs('mantas_cropped/')
 
     window = tk.Tk()
     app = App(window, "Manta Quality Labelling", image_paths, continue_true)
