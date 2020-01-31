@@ -1,3 +1,4 @@
 mantas/
 mantas_cropped/
-data.json
+*.json
+*.pkl
