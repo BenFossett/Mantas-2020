@@ -59,8 +59,7 @@ class Trainer:
                 self.optimizer.zero_grad()
 
                 with torch.no_grad():
-                    m = nn.Sigmoid()
-                    accuracy = compute_accuracy(labels.cpu().numpy(), m(logits).cpu().numpy())
+                    accuracy, _ = compute_accuracy(labels.cpu().numpy(), logits.cpu().numpy())
 
                 data_load_time = data_load_end_time - data_load_start_time
                 step_time = time.time() - data_load_end_time
@@ -114,7 +113,6 @@ class Trainer:
         self.model.eval()
 
         with torch.no_grad():
-            m = nn.Sigmoid()
             for i, (inputs, targets) in enumerate(self.val_loader):
                 batch = inputs.to(self.device)
                 labels = targets.to(self.device)
@@ -122,10 +120,10 @@ class Trainer:
                 labels = labels.float()
                 loss = self.criterion(logits, labels)
                 total_loss += loss.item()
-                results["logits"].extend(list(m(logits).cpu().numpy()))
+                results["logits"].extend(list(logits.cpu().numpy()))
                 results["labels"].extend(list(labels.cpu().numpy()))
 
-        accuracy = compute_accuracy(
+        accuracy, label_accuracies = compute_accuracy(
             np.array(results["labels"]), np.array(results["logits"])
         )
         average_loss = total_loss / len(self.val_loader)
@@ -140,4 +138,7 @@ class Trainer:
                 {"test": average_loss},
                 self.step
         )
+        labels = ["resolution", "lighting", "pattern", "pose"]
         print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
+        for i in range(0, len(labels)):
+            print("accuracy for " + labels[i] + f": {label_accuracies[i] * 100:2.2f}")

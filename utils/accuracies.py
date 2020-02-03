@@ -10,14 +10,23 @@ def compute_accuracy(
     sum = 0
     batch_size = len(labels)
     num_labels = len(labels[0])
+    label_sums = np.zeros(num_labels)
+    label_accuracies = np.zeros(num_labels)
 
     for i in range(0, batch_size):
         image_labels = labels[i]
         image_logits = logits[i]
         diff = image_labels - image_logits
-        num_correct = len([j for j in diff if abs(j) < 0.5])
-        image_accuracy = num_correct / num_labels
+        total_correct = 0
+
+        for j in range(0, num_labels):
+            result = abs(diff[j]) <= 0.5
+            total_correct += result
+            label_sums[j] += result
+
+        image_accuracy = total_correct / num_labels
         sum += image_accuracy
 
     batch_accuracy = sum / batch_size
-    return batch_accuracy
+    label_accuracies = np.divide(label_sums, batch_size)
+    return batch_accuracy, label_accuracies

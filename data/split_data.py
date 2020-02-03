@@ -14,7 +14,6 @@ test_data = {'mantas': []}
 for i, manta in enumerate(mantas):
     image_path = "mantas_cropped/" + manta['image_id']
     image = np.asarray(Image.open(image_path))
-    image = np.rollaxis(image, 2)
     manta['image'] = image
 
     if i % 10 < 8:

@@ -89,7 +89,7 @@ def main(args):
 
     model = CNN(height=512, width=512, channels=3)
 
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.BCELoss()
     optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
 
     log_dir = get_summary_writer_log_dir(args)

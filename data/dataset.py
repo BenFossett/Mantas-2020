@@ -13,6 +13,7 @@ class MantaDataset(data.Dataset):
     def __getitem__(self, index):
         manta = self.dataset[index]
         image = manta['image']
+        image = image.transpose((2, 0, 1))
         image = torch.from_numpy(image.astype(np.float32))
 
         resolution = manta['resolution']
