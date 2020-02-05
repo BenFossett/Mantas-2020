@@ -23,6 +23,8 @@ class Trainer:
         optimizer: Optimizer,
         summary_writer: SummaryWriter,
         device: torch.device,
+        checkpoint_path: Path,
+        checkpoint_frequency: int,
     ):
         self.model = model.to(device)
         self.device = device
@@ -32,6 +34,8 @@ class Trainer:
         self.optimizer = optimizer
         self.summary_writer = summary_writer
         self.step = 0
+        self.checkpoint_path = checkpoint_path
+        self.checkpoint_frequency = checkpoint_frequency
 
     def train(
         self,
@@ -70,6 +74,12 @@ class Trainer:
 
                 self.step += 1
                 data_load_start_time = time.time()
+
+            if (epoch + 1) % self.checkpoint_frequency == 0 or (epoch + 1) == epochs:
+                print(f"Saving model to {self.checkpoint_path}")
+                torch.save({"epoch": epoch,
+                            "model": self.model.state_dict()},
+                            self.checkpoint_path)
 
             self.summary_writer.add_scalar("epoch", epoch, self.step)
             if ((epoch + 1) % val_frequency) == 0:

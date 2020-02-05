@@ -68,6 +68,18 @@ parser.add_argument(
     type=int,
     help="Number of worker processes used to load data.",
 )
+parser.add_argument(
+    "--checkpoint-path",
+    default=Path("checkpoint.pkl"),
+    type=Path,
+    help="Provide a file to store checkpoints of the model parameters during training."
+)
+parser.add_argument(
+    "--checkpoint-frequency",
+    type=int,
+    default=10,
+    help="Save a checkpoint every N epochs"
+)
 
 if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
@@ -90,7 +102,7 @@ def main(args):
     model = CNN(height=512, width=512, channels=3)
 
     criterion = nn.BCELoss()
-    optimizer = optim.Adam(model.parameters(), lr=args.learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")
@@ -100,7 +112,7 @@ def main(args):
     )
     trainer = Trainer(
         model, train_loader, test_loader, criterion, optimizer, summary_writer,
-        DEVICE
+        DEVICE, args.checkpoint_path, args.checkpoint_frequency
     )
 
     trainer.train(
