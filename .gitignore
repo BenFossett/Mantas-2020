@@ -2,3 +2,5 @@ mantas/
 mantas_cropped/
 *.json
 *.pkl
+__pycache__/
+logs/
