@@ -33,7 +33,7 @@ parser.add_argument("--log-dir", default=Path("logs"), type=Path)
 parser.add_argument("--learning-rate", default=1e-3, type=float, help="Learning rate")
 parser.add_argument(
     "--batch-size",
-    default=16,
+    default=32,
     type=int,
     help="Number of images within each mini-batch",
 )
@@ -110,6 +110,7 @@ def main(args):
         log_frequency=args.log_frequency,
     )
 
+    summary_writer.add_graph(model)
     summary_writer.close()
 
 def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
