@@ -9,7 +9,7 @@ import pickle
 class MantaDataset(data.Dataset):
     def __init__(self, data_path):
         self.to_tensor = transforms.ToTensor()
-        self.dataset = pickle.load(open(data_path, 'rb'))['mantas']
+        self.dataset = json.load(open(data_path))['mantas']
 
     def __getitem__(self, index):
         manta = self.dataset[index]

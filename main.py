@@ -90,12 +90,12 @@ def main(args):
     transform = transforms.ToTensor()
 
     train_loader = torch.utils.data.DataLoader(
-        MantaDataset('data/train_data.pkl'), batch_size=args.batch_size, shuffle=True,
+        MantaDataset('data/train_data.json'), batch_size=args.batch_size, shuffle=True,
         num_workers=8, pin_memory=True
     )
 
     test_loader = torch.utils.data.DataLoader(
-        MantaDataset('data/test_data.pkl'), batch_size=args.batch_size, shuffle=False,
+        MantaDataset('data/test_data.json'), batch_size=args.batch_size, shuffle=False,
         num_workers=8, pin_memory=True
     )
 
@@ -122,7 +122,6 @@ def main(args):
         log_frequency=args.log_frequency,
     )
 
-    summary_writer.add_graph(model)
     summary_writer.close()
 
 def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
