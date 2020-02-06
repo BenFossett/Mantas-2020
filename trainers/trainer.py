@@ -151,4 +151,9 @@ class Trainer:
         labels = ["resolution", "lighting", "pattern", "pose"]
         print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
         for i in range(0, len(labels)):
+            self.summary_writer.add_scalars(
+                    labels[i] + " accuracy",
+                    {"test": label_accuracies[i]},
+                    self.step
+            )
             print("accuracy for " + labels[i] + f": {label_accuracies[i] * 100:2.2f}")

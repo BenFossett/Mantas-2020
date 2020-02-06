@@ -13,6 +13,7 @@ import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
 import torchvision.datasets
+from torch.optim import lr_scheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -99,10 +100,17 @@ def main(args):
         num_workers=8, pin_memory=True
     )
 
-    model = CNN(height=512, width=512, channels=3)
+    #model = CNN(height=512, width=512, channels=3)
+    model = torchvision.models.resnet18(pretrained=True)
+    for param in model.parameters():
+        param.requires_grad = False
 
-    criterion = nn.BCELoss()
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 4)
+
+    criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")
