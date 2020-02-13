@@ -45,6 +45,7 @@ class Trainer:
         log_frequency: int = 5,
         start_epoch: int = 0
     ):
+        m = nn.Sigmoid()
         self.model.train()
         for epoch in range(start_epoch, epochs):
             self.model.train()
@@ -55,6 +56,7 @@ class Trainer:
                 data_load_end_time = time.time()
 
                 logits = self.model.forward(batch)
+                logits = m(logits)
                 labels = labels.float()
                 loss = self.criterion(logits, labels)
                 loss.backward()
@@ -121,12 +123,14 @@ class Trainer:
         results = {"labels": [], "logits": []}
         total_loss = 0
         self.model.eval()
+        m = nn.Sigmoid()
 
         with torch.no_grad():
             for i, (inputs, targets) in enumerate(self.val_loader):
                 batch = inputs.to(self.device)
                 labels = targets.to(self.device)
                 logits = self.model(batch)
+                logits = m(logits)
                 labels = labels.float()
                 loss = self.criterion(logits, labels)
                 total_loss += loss.item()
@@ -152,8 +156,8 @@ class Trainer:
         print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
         for i in range(0, len(labels)):
             self.summary_writer.add_scalars(
-                    labels[i] + " accuracy",
-                    {"test": label_accuracies[i]},
+                    "accuracy",
+                    {labels[i]: label_accuracies[i]},
                     self.step
             )
             print("accuracy for " + labels[i] + f": {label_accuracies[i] * 100:2.2f}")

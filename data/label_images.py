@@ -38,32 +38,45 @@ class App:
 
         self.show_image(self.annotations[self.index])
 
-        self.resolution = IntVar()
-        check1 = Checkbutton(frame, text="Resolution", variable=self.resolution)
+        self.resolution = DoubleVar()
+        slider1 = Scale(frame, variable = self.resolution, from_=0, to=1, resolution=0.1, orient=HORIZONTAL, length=None, showvalue=0)
+        res_label1 = Label(frame, text="Resolution", width=10)
+        res_label2 = Label(frame, textvariable=self.resolution, width=10)
 
-        self.lighting = IntVar()
-        check2 = Checkbutton(frame, text="Lighting and Conditions", variable=self.lighting)
+        self.environment = DoubleVar()
+        slider2 = Scale(frame, variable = self.environment, from_=0, to=1, resolution=0.1, orient=HORIZONTAL, length=None, showvalue=0)
+        env_label1 = Label(frame, text="Environment", width=10)
+        env_label2 = Label(frame, textvariable=self.environment, width=10)
 
-        self.pattern = IntVar()
-        check3 = Checkbutton(frame, text="Pattern Quality", variable=self.pattern)
+        self.pattern = DoubleVar()
+        slider3 = Scale(frame, variable = self.pattern, from_=0, to=1, resolution=0.1, orient=HORIZONTAL, length=None, showvalue=0)
+        patt_label1 = Label(frame, text="Pattern", width=10)
+        patt_label2 = Label(frame, textvariable=self.pattern, width=10)
 
-        self.pose = IntVar()
-        check4 = Checkbutton(frame, text="Manta Pose", variable=self.pose)
-
-        for i in range(1, 5):
-            frame.bind(str(i), self.check)
+        self.pose = DoubleVar()
+        slider4 = Scale(frame, variable = self.pose, from_=0, to=1, resolution=0.1, orient=HORIZONTAL, length=None, showvalue=0)
+        pose_label1 = Label(frame, text="Pose", width=10)
+        pose_label2 = Label(frame, textvariable=self.pose, width=10)
 
         # Add progress label
         progress_string = "%d/%d" % (self.index, self.n_paths)
-        self.progress_label = tk.Label(frame, text=progress_string, width=10)
+        self.progress_label = Label(frame, text=progress_string, width=10)
 
         # Place buttons in grid
-        check1.grid(row=0, column=0, sticky='we')
-        check2.grid(row=0, column=1, sticky='we')
-        check3.grid(row=0, column=2, sticky='we')
-        check4.grid(row=0, column=3, sticky='we')
-        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=1, column=0, sticky='we')
-        tk.Button(frame, text="Save and Exit", width=10, height=1, command=self.exit).grid(row=1,column=5)
+        slider1.grid(row=2, column=0, rowspan=1, columnspan=1, sticky='we')
+        slider2.grid(row=2, column=1, rowspan=1, columnspan=1, sticky='we')
+        slider3.grid(row=2, column=2, rowspan=1, columnspan=1, sticky='we')
+        slider4.grid(row=2, column=3, rowspan=1, columnspan=1, sticky='we')
+        res_label1.grid(row=0, column=0)
+        res_label2.grid(row=1, column=0)
+        env_label1.grid(row=0, column=1)
+        env_label2.grid(row=1, column=1)
+        patt_label1.grid(row=0, column=2)
+        patt_label2.grid(row=1, column=2)
+        pose_label1.grid(row=0, column=3)
+        pose_label2.grid(row=1, column=3)
+        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=3, column=0, sticky='we')
+        tk.Button(frame, text="Save and Exit", width=10, height=1, command=self.exit).grid(row=3,column=5)
 
         frame.bind("<Return>", self.confirm)
         frame.bind("<Escape>", self.exit)
@@ -72,34 +85,15 @@ class App:
         self.progress_label.grid(row=0, column=5, sticky='we')
 
         # Place the image in grid
-        self.image_panel.grid(row=2, column=0, columnspan=6, sticky='we')
+        self.image_panel.grid(row=4, column=0, columnspan=6, sticky='we')
         frame.focus_set()
-
-    def check(self, event):
-        key = int(event.char)
-        if key == 1:
-            val = self.resolution.get()
-            new_val = abs(val - 1)
-            self.resolution.set(new_val)
-        if key == 2:
-            val = self.lighting.get()
-            new_val = abs(val - 1)
-            self.lighting.set(new_val)
-        if key == 3:
-            val = self.pattern.get()
-            new_val = abs(val - 1)
-            self.pattern.set(new_val)
-        if key == 4:
-            val = self.pose.get()
-            new_val = abs(val - 1)
-            self.pose.set(new_val)
 
     def next_image(self):
         self.index +=1
         self.data['position'] = self.index
         self.progress_label.configure(text="%d/%d" % (self.index, self.n_paths))
         self.resolution.set(0)
-        self.lighting.set(0)
+        self.environment.set(0)
         self.pattern.set(0)
         self.pose.set(0)
 
@@ -124,7 +118,7 @@ class App:
             'image_id': image_id,
             'image_class': image_class,
             'resolution': self.resolution.get(),
-            'lighting': self.lighting.get(),
+            'lighting': self.environment.get(),
             'pattern': self.pattern.get(),
             'pose': self.pose.get()
         })

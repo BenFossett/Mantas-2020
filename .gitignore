@@ -4,3 +4,4 @@ mantas_cropped/
 *.pkl
 __pycache__/
 logs/
+data/bins/

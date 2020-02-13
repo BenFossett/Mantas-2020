@@ -5,7 +5,7 @@ from typing import Union, NamedTuple
 
 from data.dataset import MantaDataset
 from models.model import CNN
-from utils.accuracies import compute_accuracy
+from utils.accuracies import compute_accuracy, create_histograms
 from utils.images import imshow
 
 import torch
@@ -53,8 +53,15 @@ def main(args):
         num_workers=8, pin_memory=True
     )
 
-    model = CNN(height=512, width=512, channels=3)
-    criterion = nn.BCELoss()
+    #model = CNN(height=512, width=512, channels=3)
+    model = torchvision.models.resnet18(pretrained=True)
+    for param in model.parameters():
+        param.requires_grad = False
+
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, 4)
+
+    criterion = nn.MSELoss()
 
     checkpoint = torch.load("checkpoint.pkl", map_location=DEVICE)
     model.load_state_dict(checkpoint["model"])
@@ -80,12 +87,14 @@ class Validator:
         results = {"labels": [], "logits": []}
         total_loss = 0
         self.model.eval()
+        m = nn.Sigmoid()
 
         with torch.no_grad():
             for i, (inputs, targets) in enumerate(self.test_loader):
                 batch = inputs.to(self.device)
                 labels = targets.to(self.device)
                 logits = self.model(batch)
+                logits = m(logits)
                 labels = labels.float()
                 loss = self.criterion(logits, labels)
                 total_loss += loss.item()
@@ -100,6 +109,7 @@ class Validator:
         accuracy, label_accuracies = compute_accuracy(
             np.array(results["labels"]), np.array(results["logits"])
         )
+        create_histograms(results["logits"])
         average_loss = total_loss / len(self.test_loader)
 
         labels = ["resolution", "lighting", "pattern", "pose"]
