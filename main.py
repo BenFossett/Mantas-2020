@@ -81,6 +81,18 @@ parser.add_argument(
     default=10,
     help="Save a checkpoint every N epochs"
 )
+parser.add_argument(
+    "--model",
+    type=str,
+    default="custom",
+    help="Use either custom mode or existing CNN"
+)
+parser.add_argument(
+    "--lr-decay",
+    type=float,
+    default=0.1,
+    help="Multiplicative factor for learning rate decay"
+)
 
 if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
@@ -100,17 +112,22 @@ def main(args):
         num_workers=8, pin_memory=True
     )
 
-    #model = CNN(height=512, width=512, channels=3)
-    model = torchvision.models.resnet18(pretrained=True)
-    for param in model.parameters():
-        param.requires_grad = False
-
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 4)
+    if model == "custom":
+        model = CNN(height=512, width=512, channels=3)
+    elif model in ["resnet", "resnet-finetuned"]:
+        model = torchvision.models.resnet18(pretrained=True)
+        if model == "resnet":
+            for param in model.parameters():
+                param.requires_grad = False
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 4)
+    else:
+        print("Please use a valid model")
+        import sys; sys.exit(0)
 
     criterion = nn.MSELoss()
     optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=args.lr_decay)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")
@@ -119,8 +136,8 @@ def main(args):
             flush_secs=5
     )
     trainer = Trainer(
-        model, train_loader, test_loader, criterion, optimizer, summary_writer,
-        DEVICE, args.checkpoint_path, args.checkpoint_frequency
+        model, train_loader, test_loader, criterion, optimizer, exp_lr_scheduler,
+        summary_writer, DEVICE, args.checkpoint_path, args.checkpoint_frequency
     )
 
     trainer.train(
@@ -144,7 +161,7 @@ def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
         from getting logged to the same TB log directory (which you can't easily
         untangle in TB).
     """
-    tb_log_dir_prefix = f'CNN_bn_bs={args.batch_size}_lr={args.learning_rate}_run_'
+    tb_log_dir_prefix = f'CNN_bn_model={args.model}_bs={args.batch_size}_lr={args.learning_rate}_run_'
     i = 0
     while i < 1000:
         tb_log_dir = args.log_dir / (tb_log_dir_prefix + str(i))

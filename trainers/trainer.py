@@ -8,6 +8,7 @@ import numpy as np
 from torch import nn
 import torchvision.datasets
 from torch.optim.optimizer import Optimizer
+from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -21,6 +22,7 @@ class Trainer:
         val_loader: DataLoader,
         criterion: nn.Module,
         optimizer: Optimizer,
+        scheduler: lr_scheduler,
         summary_writer: SummaryWriter,
         device: torch.device,
         checkpoint_path: Path,
@@ -32,6 +34,7 @@ class Trainer:
         self.val_loader = val_loader
         self.criterion = criterion
         self.optimizer = optimizer
+        self.scheduler = scheduler
         self.summary_writer = summary_writer
         self.step = 0
         self.checkpoint_path = checkpoint_path
@@ -63,6 +66,7 @@ class Trainer:
 
                 self.optimizer.step()
                 self.optimizer.zero_grad()
+                self.scheduler.step()
 
                 with torch.no_grad():
                     accuracy, _ = compute_accuracy(labels.cpu().numpy(), logits.cpu().numpy())
