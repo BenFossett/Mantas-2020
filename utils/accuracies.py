@@ -25,7 +25,7 @@ def compute_accuracy(
             total_correct += result
             label_sums[j] += result
 
-        image_accuracy = total_correct / num_labels
+        image_accuracy = total_correct.item() / num_labels
         sum += image_accuracy
 
     batch_accuracy = sum / batch_size

@@ -73,8 +73,8 @@ class CNN(nn.Module):
         x = F.relu(self.bn64(self.conv4(x)))
         x = self.pool4(x)
         x = torch.flatten(x, start_dim=1)
-        x = F.sigmoid(self.fc1(x))
-        x = F.sigmoid(self.out(x))
+        x = self.fc1(x)
+        x = self.out(x)
         return x
 
     @staticmethod

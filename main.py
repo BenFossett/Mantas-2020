@@ -112,11 +112,11 @@ def main(args):
         num_workers=8, pin_memory=True
     )
 
-    if model == "custom":
+    if args.model == "custom":
         model = CNN(height=512, width=512, channels=3)
-    elif model in ["resnet", "resnet-finetuned"]:
+    elif args.model in ["resnet", "resnet-finetuned"]:
         model = torchvision.models.resnet18(pretrained=True)
-        if model == "resnet":
+        if args.model == "resnet":
             for param in model.parameters():
                 param.requires_grad = False
         num_ftrs = model.fc.in_features
