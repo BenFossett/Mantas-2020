@@ -1,20 +1,47 @@
 import time
+import numpy as np
 
-from utils.accuracies import compute_accuracy
+from utils.images import imshow
 
 import torch
-import torch.backends.cudnn
-import numpy as np
 from torch import nn
-import torchvision.datasets
 from torch.optim.optimizer import Optimizer
-from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from pathlib import Path
+from typing import Union
 
-class Trainer:
+def compute_accuracy(
+    labels: Union[torch.Tensor, np.ndarray], probs: Union[torch.tensor, np.ndarray]
+) -> float:
+    assert len(labels) == len(probs)
+
+    sum = 0
+    batch_size = len(labels)
+    num_labels = len(labels[0])
+    label_sums = np.zeros(num_labels)
+    label_accuracies = np.zeros(num_labels)
+
+    for i in range(0, batch_size):
+        image_labels = labels[i]
+        image_probs = probs[i]
+        diff = image_labels - image_probs
+        total_correct = 0
+
+        for j in range(0, num_labels):
+            result = abs(diff[j]) <= 0.5
+            total_correct += result
+            label_sums[j] += result
+
+        image_accuracy = total_correct.item() / num_labels
+        sum += image_accuracy
+
+    batch_accuracy = sum / batch_size
+    label_accuracies = np.divide(label_sums, batch_size)
+    return batch_accuracy, label_accuracies
+
+class IQATrainer:
     def __init__(
         self,
         model: nn.Module,
@@ -22,7 +49,6 @@ class Trainer:
         val_loader: DataLoader,
         criterion: nn.Module,
         optimizer: Optimizer,
-        scheduler: lr_scheduler,
         summary_writer: SummaryWriter,
         device: torch.device,
         checkpoint_path: Path,
@@ -34,7 +60,6 @@ class Trainer:
         self.val_loader = val_loader
         self.criterion = criterion
         self.optimizer = optimizer
-        self.scheduler = scheduler
         self.summary_writer = summary_writer
         self.step = 0
         self.checkpoint_path = checkpoint_path
@@ -48,7 +73,6 @@ class Trainer:
         log_frequency: int = 5,
         start_epoch: int = 0
     ):
-        m = nn.Sigmoid()
         self.model.train()
         for epoch in range(start_epoch, epochs):
             self.model.train()
@@ -58,18 +82,16 @@ class Trainer:
                 labels = targets.to(self.device)
                 data_load_end_time = time.time()
 
-                logits = self.model.forward(batch)
-                logits = m(logits)
+                probs = self.model.forward(batch)
                 labels = labels.float()
-                loss = self.criterion(logits, labels)
+                loss = self.criterion(probs, labels)
                 loss.backward()
 
                 self.optimizer.step()
                 self.optimizer.zero_grad()
-                self.scheduler.step()
 
                 with torch.no_grad():
-                    accuracy, _ = compute_accuracy(labels.cpu().numpy(), logits.cpu().numpy())
+                    accuracy, _ = compute_accuracy(labels.cpu().numpy(), probs.cpu().numpy())
 
                 data_load_time = data_load_end_time - data_load_start_time
                 step_time = time.time() - data_load_end_time
@@ -124,25 +146,23 @@ class Trainer:
         )
 
     def validate(self):
-        results = {"labels": [], "logits": []}
+        results = {"probs": [], "labels": []}
         total_loss = 0
         self.model.eval()
-        m = nn.Sigmoid()
 
         with torch.no_grad():
             for i, (inputs, targets) in enumerate(self.val_loader):
                 batch = inputs.to(self.device)
                 labels = targets.to(self.device)
-                logits = self.model(batch)
-                logits = m(logits)
+                probs = self.model(batch)
                 labels = labels.float()
-                loss = self.criterion(logits, labels)
+                loss = self.criterion(probs, labels)
                 total_loss += loss.item()
-                results["logits"].extend(list(logits.cpu().numpy()))
+                results["probs"].extend(list(probs.cpu().numpy()))
                 results["labels"].extend(list(labels.cpu().numpy()))
 
         accuracy, label_accuracies = compute_accuracy(
-            np.array(results["labels"]), np.array(results["logits"])
+            np.array(results["labels"]), np.array(results["probs"])
         )
         average_loss = total_loss / len(self.val_loader)
 
@@ -156,6 +176,7 @@ class Trainer:
                 {"test": average_loss},
                 self.step
         )
+
         labels = ["resolution", "lighting", "pattern", "pose"]
         print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
         for i in range(0, len(labels)):

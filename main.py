@@ -1,35 +1,31 @@
 #!/usr/bin/env python3
-import time
 from multiprocessing import cpu_count
-from typing import Union, NamedTuple
 
 from data.dataset import MantaDataset
-from models.model import CNN
-from trainers.trainer import Trainer
+from models.iqa_model import IQANet
+from trainers.iqa_trainer import IQATrainer
+from trainers.id_trainer import IDTrainer
 
 import torch
 import torch.backends.cudnn
-import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
-import torchvision.datasets
-from torch.optim import lr_scheduler
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+import torchvision.datasets
 from torchvision import transforms
 
 import argparse
 from pathlib import Path
+import sys
 
 torch.backends.cudnn.benchmark = True
 
 parser = argparse.ArgumentParser(
-    description="Train a CNN for image quality assessment with manta ray images",
+    description="Train a CNN on the 100mantas dataset",
     formatter_class=argparse.ArgumentDefaultsHelpFormatter,
 )
-default_dataset_dir = Path.home() / ".cache" / "torch" / "datasets"
-parser.add_argument("--dataset-root", default=default_dataset_dir)
 parser.add_argument("--log-dir", default=Path("logs"), type=Path)
 parser.add_argument("--learning-rate", default=1e-3, type=float, help="Learning rate")
 parser.add_argument(
@@ -43,6 +39,18 @@ parser.add_argument(
     default=50,
     type=int,
     help="Number of epochs (passes through the entire dataset) to train for"
+)
+parser.add_argument(
+    "--mode",
+    type=str,
+    default="iqa",
+    help="What the network is being trained for (iqa, id-full, id-qual)"
+)
+parser.add_argument(
+    "--iqa-model",
+    type=str,
+    default="resnet-finetuned",
+    help="Model to be used for image quality assessment training"
 )
 parser.add_argument(
     "--val-frequency",
@@ -81,18 +89,6 @@ parser.add_argument(
     default=10,
     help="Save a checkpoint every N epochs"
 )
-parser.add_argument(
-    "--model",
-    type=str,
-    default="custom",
-    help="Use either custom mode or existing CNN"
-)
-parser.add_argument(
-    "--lr-decay",
-    type=float,
-    default=0.1,
-    help="Multiplicative factor for learning rate decay"
-)
 
 if torch.cuda.is_available():
     DEVICE = torch.device("cuda")
@@ -100,34 +96,64 @@ else:
     DEVICE = torch.device("cpu")
 
 def main(args):
-    transform = transforms.ToTensor()
+    if args.mode == "iqa":
+        train_data_path = 'data/iqa_train_data.pkl'
+        test_data_path = 'data/iqa_test_data.pkl'
+    elif args.mode == "id-full":
+        train_data_path = 'data/id_train_data.pkl'
+        test_data_path = 'data/id_test_data.pkl'
+    elif args.mode == "id-qual":
+        train_data_path = 'data/qual_train_data.pkl'
+        test_data_path = 'data/qual_test_data.pkl'
+    else:
+        print("Please choose a valid mode.")
+        sys.exit(0)
 
     train_loader = torch.utils.data.DataLoader(
-        MantaDataset('data/train_data.json'), batch_size=args.batch_size, shuffle=True,
-        num_workers=8, pin_memory=True
+        MantaDataset(train_data_path, mode=args.mode, train=True),
+        batch_size=args.batch_size, shuffle=True, num_workers=8,
+        pin_memory=True
     )
 
     test_loader = torch.utils.data.DataLoader(
-        MantaDataset('data/test_data.json'), batch_size=args.batch_size, shuffle=False,
-        num_workers=8, pin_memory=True
+        MantaDataset(test_data_path, mode=args.mode, train=False),
+        batch_size=args.batch_size, shuffle=True, num_workers=8,
+        pin_memory=True
     )
 
-    if args.model == "custom":
-        model = CNN(height=512, width=512, channels=3)
-    elif args.model in ["resnet", "resnet-finetuned"]:
-        model = torchvision.models.resnet18(pretrained=True)
-        if args.model == "resnet":
-            for param in model.parameters():
-                param.requires_grad = False
-        num_ftrs = model.fc.in_features
-        model.fc = nn.Linear(num_ftrs, 4)
-    else:
-        print("Please use a valid model")
-        import sys; sys.exit(0)
+    if args.mode == "iqa":
+        if args.iqa_model == "custom":
+            model = IQANet(height=512, width=512, channels=3)
+        elif args.iqa_model in ["resnet-finetuned", "resnet-feature"]:
+            model = torchvision.models.resnet18(pretrained=True)
+            if args.iqa_model == "resnet-feature":
+                for param in model.parameters():
+                    param.requires_grad = False
+            num_ftrs = model.fc.in_features
+            model.fc = nn.Sequential(
+                nn.Linear(num_ftrs, 4),
+                nn.Sigmoid())
+        else:
+            print("Please use a valid model.")
+            sys.exit(0)
 
-    criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
-    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=args.lr_decay)
+        criterion = nn.MSELoss()
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+
+    elif args.mode in ["id-full", "id-qual"]:
+        model = torchvision.models.inception_v3(pretrained=True)
+        for param in model.parameters():
+            param.requires_grad = False
+        num_ftrs = model.AuxLogits.fc.in_features
+        model.AuxLogits.fc = nn.Linear(num_ftrs, 100)
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs,100)
+
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
+    else:
+        print("Please choose a valid mode.")
+        sys.exit(0)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")
@@ -135,10 +161,17 @@ def main(args):
             str(log_dir),
             flush_secs=5
     )
-    trainer = Trainer(
-        model, train_loader, test_loader, criterion, optimizer, exp_lr_scheduler,
-        summary_writer, DEVICE, args.checkpoint_path, args.checkpoint_frequency
-    )
+
+    if args.mode == "iqa":
+        trainer = IQATrainer(
+            model, train_loader, test_loader, criterion, optimizer,
+            summary_writer, DEVICE, args.checkpoint_path, args.checkpoint_frequency
+        )
+    else:
+        trainer = IDTrainer(
+            model, train_loader, test_loader, criterion, optimizer,
+            summary_writer, DEVICE, args.checkpoint_path, args.checkpoint_frequency
+        )
 
     trainer.train(
         args.epochs,
@@ -161,7 +194,14 @@ def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
         from getting logged to the same TB log directory (which you can't easily
         untangle in TB).
     """
-    tb_log_dir_prefix = f'CNN_bn_model={args.model}_bs={args.batch_size}_lr={args.learning_rate}_run_'
+    tb_log_dir_prefix = (
+        f"CNN_bn_"
+        f"mode={args.mode}_"
+        f"iqa_model={args.iqa_model}_"
+        f"bs={args.batch_size}_"
+        f"lr={args.learning_rate}_"
+        f"run_"
+    )
     i = 0
     while i < 1000:
         tb_log_dir = args.log_dir / (tb_log_dir_prefix + str(i))
