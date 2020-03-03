@@ -4,8 +4,6 @@ from multiprocessing import cpu_count
 from typing import Union, NamedTuple
 
 from data.dataset import MantaDataset
-from models.model import CNN
-from utils.accuracies import compute_accuracy, create_histograms
 from utils.images import imshow
 
 import torch
@@ -31,7 +29,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--checkpoint-path",
-    default=Path("checkpoint_finetuned.pkl"),
+    default=Path("checkpoint_finetune.pkl"),
     type=Path,
     help="Provide a file to store checkpoints of the model parameters during training."
 )
@@ -59,7 +57,7 @@ def main(args):
         nn.Linear(num_ftrs, 4),
         nn.Sigmoid())
 
-    checkpoint = torch.load("checkpoint_finetuned.pkl", map_location=DEVICE)
+    checkpoint = torch.load("checkpoint_finetune.pkl", map_location=DEVICE)
     model.load_state_dict(checkpoint["model"])
     model.eval()
 
@@ -67,7 +65,7 @@ def main(args):
     new_dataset = {"mantas": []}
 
     classes = []
-    for manta in dataset['mantas']:
+    for manta in dataset:
         if manta["image_class"] not in classes:
             classes.append(manta["image_class"])
     print(str(len(classes)) + "mantas")

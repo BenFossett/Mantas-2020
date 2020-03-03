@@ -5,3 +5,4 @@ mantas_cropped/
 __pycache__/
 logs/
 data/bins/
+count.py

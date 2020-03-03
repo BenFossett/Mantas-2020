@@ -3,6 +3,7 @@ from multiprocessing import cpu_count
 
 from data.dataset import MantaDataset
 from models.iqa_model import IQANet
+from models.id_model import MantaIDNet
 from trainers.iqa_trainer import IQATrainer
 from trainers.id_trainer import IDTrainer
 
@@ -138,9 +139,10 @@ def main(args):
             sys.exit(0)
 
         criterion = nn.MSELoss()
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
 
     elif args.mode in ["id-full", "id-qual"]:
+        #model = MantaIDNet(height=299, width=299, channels=3)
         model = torchvision.models.inception_v3(pretrained=True)
         for param in model.parameters():
             param.requires_grad = False
@@ -150,7 +152,7 @@ def main(args):
         model.fc = nn.Linear(num_ftrs,100)
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
+        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
     else:
         print("Please choose a valid mode.")
         sys.exit(0)

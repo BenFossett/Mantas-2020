@@ -42,6 +42,7 @@ def split_data_quality(mantas, threshold):
     previous_class = "None"
     test_count = 0
     for manta in good_quality["mantas"]:
+        manta['image'] = np.asarray(Image.open('data/mantas_cropped/' + manta['image_id']))
         if previous_class != manta["image_class"]:
             test_count = 0
         if test_count < 2:
@@ -54,10 +55,10 @@ def split_data_quality(mantas, threshold):
     print(len(train_data['mantas']))
     print(len(test_data['mantas']))
 
-    with open('data/id_train_data.pkl', 'wb') as outfile:
+    with open('data/qual_train_data.pkl', 'wb') as outfile:
         pickle.dump(train_data, outfile)
 
-    with open('data/id_test_data.pkl', 'wb') as outfile:
+    with open('data/qual_test_data.pkl', 'wb') as outfile:
         pickle.dump(test_data, outfile)
 
 
@@ -67,7 +68,6 @@ def split_data_full(mantas):
 
     for i, manta in enumerate(mantas):
         manta['image'] = np.asarray(Image.open('data/mantas_cropped/' + manta['image_id']))
-        manta['class_index'] = classes.index(manta['image_class'])
 
         if i % 10 < 8:
             train_data['mantas'].append(manta)
@@ -77,11 +77,11 @@ def split_data_full(mantas):
     print(len(train_data['mantas']))
     print(len(test_data['mantas']))
 
-    with open('data/id_train_data.json', 'w') as outfile:
-        json.dump(train_data, outfile, indent=4)
+    with open('data/id_train_data.pkl', 'wb') as outfile:
+        pickle.dump(train_data, outfile)
 
-    with open('data/id_test_data.json', 'w') as outfile:
-        json.dump(test_data, outfile, indent=4)
+    with open('data/id_test_data.pkl', 'wb') as outfile:
+        pickle.dump(test_data, outfile)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -103,8 +103,8 @@ if __name__ == "__main__":
     elif args.mode == "id-full":
         data = json.load(open('data/manta_quality.json'))
         mantas = data['mantas']
-        split_data_full(mantas, classes)
+        split_data_full(mantas)
     elif args.mode == "id-qual":
         data = json.load(open('data/manta_quality.json'))
         mantas = data['mantas']
-        split_data_quality(mantas, classes, 0.5)
+        split_data_quality(mantas, 0.5)

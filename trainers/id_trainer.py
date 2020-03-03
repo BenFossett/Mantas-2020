@@ -6,6 +6,7 @@ from torch import nn
 from torch.optim.optimizer import Optimizer
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from utils.images import imshow
 
 from pathlib import Path
 from typing import Union
@@ -66,6 +67,7 @@ class IDTrainer:
                 loss1 = self.criterion(outputs, labels)
                 loss2 = self.criterion(aux_outputs, labels)
                 loss = loss1 + 0.4*loss2
+                loss.backward()
 
                 self.optimizer.step()
                 self.optimizer.zero_grad()

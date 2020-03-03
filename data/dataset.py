@@ -15,15 +15,17 @@ class MantaDataset(data.Dataset):
             if train:
                 self.transforms = transforms.Compose([
                     transforms.Resize(299),
-                    transforms.RandomAffine(degrees=(-90, 90), translate=(0.1, 0.1), scale=(0.75, 1.25), shear=(-15, 15)),
+                    transforms.RandomAffine(degrees=(-90, 90), translate=(0.15, 0.15), scale=(0.75, 1.25), shear=(-15, 15)),
                     transforms.RandomPerspective(distortion_scale=0.2),
                     transforms.ColorJitter(brightness=0.25, contrast=0.25, hue=0.5),
-                    transforms.ToTensor()
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])
             else:
                 self.transforms = transforms.Compose([
                     transforms.Resize(299),
-                    transforms.ToTensor()
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
                 ])
         else:
             self.transforms = transforms.ToTensor()
@@ -37,10 +39,10 @@ class MantaDataset(data.Dataset):
         class_index = manta['class_index']
 
         resolution = manta['resolution']
-        lighting = manta['lighting']
+        environment = manta['environment']
         pattern = manta['pattern']
         pose = manta['pose']
-        image_quality = torch.tensor([resolution, lighting, pattern, pose])
+        image_quality = torch.tensor([resolution, environment, pattern, pose])
 
         if self.mode == "iqa":
             targets = image_quality
