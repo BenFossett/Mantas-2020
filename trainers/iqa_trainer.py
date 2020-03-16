@@ -177,7 +177,8 @@ class IQATrainer:
                 self.step
         )
 
-        labels = ["resolution", "lighting", "pattern", "pose"]
+        labels = ["resolution", "environment", "pattern", "pose"]
+
         print(f"validation loss: {average_loss:.5f}, accuracy: {accuracy * 100:2.2f}")
         for i in range(0, len(labels)):
             self.summary_writer.add_scalars(

@@ -38,32 +38,29 @@ class App:
 
         self.show_image(self.annotations[self.index])
 
-        self.resolution = IntVar()
-        check1 = Checkbutton(frame, text="Resolution", variable=self.resolution)
+        self.technical = DoubleVar()
+        slider1 = Scale(frame, variable = self.technical, from_=1, to=5, resolution=1, orient=HORIZONTAL, length=None, showvalue=0)
+        tech_label1 = Label(frame, text="Technical Quality", width=10)
+        tech_label2 = Label(frame, textvariable=self.technical, width=10)
 
-        self.environment = IntVar()
-        check2 = Checkbutton(frame, text="Environmental Conditions", variable=self.environment)
-
-        self.pattern = IntVar()
-        check3 = Checkbutton(frame, text="Pattern Quality", variable=self.pattern)
-
-        self.pose = IntVar()
-        check4 = Checkbutton(frame, text="Manta Pose", variable=self.pose)
-
-        for i in range(1, 5):
-            frame.bind(str(i), self.check)
+        self.manta = DoubleVar()
+        slider2 = Scale(frame, variable = self.manta, from_=1, to=5, resolution=1, orient=HORIZONTAL, length=None, showvalue=0)
+        manta_label1 = Label(frame, text="Manta Quality", width=10)
+        manta_label2 = Label(frame, textvariable=self.manta, width=10)
 
         # Add progress label
         progress_string = "%d/%d" % (self.index, self.n_paths)
         self.progress_label = tk.Label(frame, text=progress_string, width=10)
 
         # Place buttons in grid
-        check1.grid(row=0, column=0, sticky='we')
-        check2.grid(row=0, column=1, sticky='we')
-        check3.grid(row=0, column=2, sticky='we')
-        check4.grid(row=0, column=3, sticky='we')
-        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=1, column=0, sticky='we')
-        tk.Button(frame, text="Save and Exit", width=10, height=1, command=self.exit).grid(row=1,column=5)
+        slider1.grid(row=2, column=0, rowspan=1, columnspan=1, sticky='we')
+        slider2.grid(row=2, column=4, rowspan=1, columnspan=1, sticky='we')
+        tech_label1.grid(row=0, column=0)
+        tech_label2.grid(row=1, column=0)
+        manta_label1.grid(row=0, column=4)
+        manta_label2.grid(row=1, column=4)
+        tk.Button(frame, text="Confirm", width=10, height=1, command=self.confirm).grid(row=3, column=0, sticky='we')
+        tk.Button(frame, text="Save and Exit", width=10, height=1, command=self.exit).grid(row=3,column=5)
 
         frame.bind("<Return>", self.confirm)
         frame.bind("<Escape>", self.exit)
@@ -72,41 +69,20 @@ class App:
         self.progress_label.grid(row=0, column=5, sticky='we')
 
         # Place the image in grid
-        self.image_panel.grid(row=2, column=0, columnspan=6, sticky='we')
+        self.image_panel.grid(row=4, column=0, columnspan=6, sticky='we')
         frame.focus_set()
-
-    def check(self, event):
-        key = int(event.char)
-        if key == 1:
-            val = self.resolution.get()
-            new_val = abs(val - 1)
-            self.resolution.set(new_val)
-        if key == 2:
-            val = self.environment.get()
-            new_val = abs(val - 1)
-            self.environment.set(new_val)
-        if key == 3:
-            val = self.pattern.get()
-            new_val = abs(val - 1)
-            self.pattern.set(new_val)
-        if key == 4:
-            val = self.pose.get()
-            new_val = abs(val - 1)
-            self.pose.set(new_val)
 
     def next_image(self):
         self.index +=1
         self.data['position'] = self.index
         self.progress_label.configure(text="%d/%d" % (self.index, self.n_paths))
-        self.resolution.set(0)
-        self.environment.set(0)
-        self.pattern.set(0)
-        self.pose.set(0)
+        self.technical.set(1)
+        self.manta.set(1)
 
         if self.index < self.n_paths:
             self.show_image(self.annotations[self.index])
         else:
-            with open('data.json', 'w') as outfile:
+            with open('new_labels.json', 'w') as outfile:
                 json.dump(self.data, outfile, indent=4)
             self.window.quit()
 
@@ -123,10 +99,8 @@ class App:
         self.data['mantas'].append({
             'image_id': image_id,
             'image_class': image_class,
-            'resolution': self.resolution.get(),
-            'environment': self.environment.get(),
-            'pattern': self.pattern.get(),
-            'pose': self.pose.get()
+            'technical': self.technical.get(),
+            'manta': self.manta.get(),
         })
         self.next_image()
 

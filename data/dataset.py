@@ -11,7 +11,7 @@ class MantaDataset(data.Dataset):
         self.dataset = pickle.load(open(data_path, 'rb'))['mantas']
         self.mode = mode
 
-        if self.mode in ["id-full", "id-qual"]:
+        if self.mode == 'id':
             if train:
                 self.transforms = transforms.Compose([
                     transforms.Resize(299),

@@ -22,6 +22,7 @@ import argparse
 import json
 from pathlib import Path
 from PIL import Image
+import pickle
 
 parser = argparse.ArgumentParser(
     description="Train a CNN for image quality assessment with manta ray images",
@@ -39,9 +40,9 @@ if torch.cuda.is_available():
 else:
     DEVICE = torch.device("cpu")
 
-def image_loader(image_name):
+def image_loader(image):
     to_tensor = transforms.ToTensor()
-    image = Image.open(image_name)
+    image = Image.fromarray(image)
     image = to_tensor(image)
     #image = Variable(image, requires_grad=True)
     image = image.unsqueeze(0)
@@ -61,7 +62,8 @@ def main(args):
     model.load_state_dict(checkpoint["model"])
     model.eval()
 
-    dataset = json.load(open("data/labels.json"))['mantas']
+    #dataset = json.load(open("data/labels.json"))['mantas']
+    dataset = pickle.load(open('data/test_data.pkl', 'rb'))['mantas']
     new_dataset = {"mantas": []}
 
     classes = []
@@ -71,8 +73,7 @@ def main(args):
     print(str(len(classes)) + "mantas")
 
     for manta in dataset:
-        image_path = "data/mantas_cropped/" + manta['image_id']
-        image_tensor = image_loader(image_path)
+        image_tensor = image_loader(manta['image'])
         image_class = manta['image_class']
         class_index = classes.index(image_class)
 
@@ -88,7 +89,7 @@ def main(args):
             'pose': np.round(prediction[0][3].item(), 2)
         })
 
-    with open('data/manta_quality.json', 'w') as outfile:
+    with open('data/manta_quality2.json', 'w') as outfile:
         json.dump(new_dataset, outfile, indent=4)
 
 if __name__ == "__main__":

@@ -45,7 +45,7 @@ parser.add_argument(
     "--mode",
     type=str,
     default="iqa",
-    help="What the network is being trained for (iqa, id-full, id-qual)"
+    help="What the network is being trained for (iqa, id)"
 )
 parser.add_argument(
     "--iqa-model",
@@ -97,18 +97,8 @@ else:
     DEVICE = torch.device("cpu")
 
 def main(args):
-    if args.mode == "iqa":
-        train_data_path = 'data/iqa_train_data.pkl'
-        test_data_path = 'data/iqa_test_data.pkl'
-    elif args.mode == "id-full":
-        train_data_path = 'data/id_train_data.pkl'
-        test_data_path = 'data/id_test_data.pkl'
-    elif args.mode == "id-qual":
-        train_data_path = 'data/qual_train_data.pkl'
-        test_data_path = 'data/qual_test_data.pkl'
-    else:
-        print("Please choose a valid mode.")
-        sys.exit(0)
+    train_data_path = 'data/train_data.pkl'
+    test_data_path = 'data/test_data.pkl'
 
     train_loader = torch.utils.data.DataLoader(
         MantaDataset(train_data_path, mode=args.mode, train=True),
@@ -141,8 +131,7 @@ def main(args):
         criterion = nn.MSELoss()
         optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
 
-    elif args.mode in ["id-full", "id-qual"]:
-        #model = MantaIDNet(height=299, width=299, channels=3)
+    elif args.mode =="id":
         model = torchvision.models.inception_v3(pretrained=True)
         for param in model.parameters():
             param.requires_grad = False
@@ -152,7 +141,7 @@ def main(args):
         model.fc = nn.Linear(num_ftrs,100)
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
+        optimizer = optim.Adam(model.parameters(), lr=args.learning_rate, weight_decay=1e-4)
     else:
         print("Please choose a valid mode.")
         sys.exit(0)
@@ -196,14 +185,22 @@ def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
         from getting logged to the same TB log directory (which you can't easily
         untangle in TB).
     """
-    tb_log_dir_prefix = (
-        f"CNN_bn_"
-        f"mode={args.mode}_"
-        f"iqa_model={args.iqa_model}_"
-        f"bs={args.batch_size}_"
-        f"lr={args.learning_rate}_"
-        f"run_"
-    )
+    if args.mode == 'iqa':
+        tb_log_dir_prefix = (
+            f"IQA_"
+            f"iqa_model={args.iqa_model}_"
+            f"bs={args.batch_size}_"
+            f"lr={args.learning_rate}_"
+            f"run_"
+        )
+    else:
+        tb_log_dir_prefix = (
+            f"ID_"
+            f"bs={args.batch_size}_"
+            f"lr={args.learning_rate}_"
+            f"run_"
+        )
+
     i = 0
     while i < 1000:
         tb_log_dir = args.log_dir / (tb_log_dir_prefix + str(i))

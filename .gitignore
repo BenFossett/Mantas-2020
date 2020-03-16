@@ -1,8 +1,12 @@
 mantas/
 mantas_cropped/
+preds_failure/
+preds_success/
 *.json
 *.pkl
+*.csv
+*.png
 __pycache__/
 logs/
 data/bins/
-count.py
+process_results.py
