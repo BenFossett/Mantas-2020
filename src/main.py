@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from multiprocessing import cpu_count
 
-from data.dataset import MantaDataset
+from iqa_code.dataset import MantaIQADataset
 from iqa_code.model import CNN
 from iqa_code.trainer import Trainer
 
@@ -90,23 +90,23 @@ else:
     DEVICE = torch.device("cpu")
 
 def main(args):
-    train_data_path = 'data/train_data.pkl'
-    test_data_path = 'data/test_data.pkl'
+    train_data_path = 'src/dataset/train_data.pkl'
+    test_data_path = 'src/dataset/test_data.pkl'
 
     train_loader = torch.utils.data.DataLoader(
-        MantaDataset(train_data_path, train=True),
+        MantaIQADataset(train_data_path),
         batch_size=args.batch_size, shuffle=True, num_workers=8,
         pin_memory=True
     )
 
     test_loader = torch.utils.data.DataLoader(
-        MantaDataset(test_data_path, train=False),
+        MantaIQADataset(test_data_path),
         batch_size=args.batch_size, shuffle=True, num_workers=8,
         pin_memory=True
     )
 
     if args.model == "custom":
-        model = CNN(height=512, width=512, channels=3)
+        model = CNN(height=512, width=512, channels=3, dropout=args.dropout)
     elif args.model in ["resnet-finetuned", "resnet-feature"]:
         model = torchvision.models.resnet18(pretrained=True)
         if args.model == "resnet-feature":
@@ -115,11 +115,14 @@ def main(args):
         num_ftrs = model.fc.in_features
         model.fc = nn.Sequential(
             nn.Linear(num_ftrs, 4),
-            nn.Dropout(p=args.dropout),
-            nn.Sigmoid())
+            nn.Dropout(p=args.dropout))
+    else:
+        print("No valid model selected, defaulting to custom CNN")
+        model = CNN(height=512, width=512, channels=3, dropout=args.dropout)
 
     criterion = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=0.9)
+    #criterion = nn.BCELoss()
+    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")
@@ -161,6 +164,7 @@ def get_summary_writer_log_dir(args: argparse.Namespace) -> str:
         f"lr={args.learning_rate}_"
         f"dropout={args.dropout}_"
         f"run_"
+    )
     i = 0
     while i < 1000:
         tb_log_dir = args.log_dir / (tb_log_dir_prefix + str(i))

@@ -9,33 +9,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--accs', help='Get per-label thresholded accuracies', action='store_true')
 parser.add_argument('--topk', help='Top-K Accuracy (to be used with --accs argument)', type=int, default=1)
 parser.add_argument('--hists', help='Get histograms for each label', action='store_true')
+parser.add_argument('--vis', help='Visualise images with quality labels', action='store_true')
 
 def get_manta(image_id, mantas):
     for manta in mantas:
         if manta['image_id'] == image_id:
             return manta
-
-'''fig = plt.figure(figsize=(12, 6))
-fig.add_subplot(121)
-title = "Prediction: " + str(prediction) + ", Actual: " + str(class_index)
-plt.title(title)
-image = Image.open('data/mantas_cropped/' + image_id)
-plt.imshow(image)
-plt.axis('off')
-
-fig.add_subplot(122)
-plt.title('Image Quality')
-plt.bar(np.arange(4), [resolution, environment, pattern, pose])
-plt.ylim(0, 1)
-plt.xticks(np.arange(4), ["res", "env", "patt", "pose"])
-
-if class_index == prediction:
-    folder = 'preds_success/'
-else:
-    folder = 'preds_failure/'
-
-plt.savefig(folder + str(manta['image_class']) + "_" + str(i) + ".png")
-i += 1'''
 
 def find_best_combo(data, topk):
     best_acc = 0
@@ -92,9 +71,9 @@ def accuracy_threshold(data, threshold, label, topk):
     return accuracy
 
 def main(args):
-    gt_labels = json.load(open('data/labels/labels.json'))['mantas']
-    cnn_results = json.load(open('results/CNN results/test_results.json'))['mantas']
-    itm_results = json.load(open('results/idTheManta results/test_results.json'))['mantas']
+    gt_labels = json.load(open('dataset/quality_labels.json'))['mantas']
+    cnn_results = json.load(open('manta_id/cnn/results/test_results.json'))['mantas']
+    itm_results = json.load(open('manta_id/idthemanta/results/test_results.json'))['mantas']
 
     if args.accs:
         res_accs = np.zeros(10)
@@ -124,7 +103,7 @@ def main(args):
         pat_array = []
         pos_array = []
         for i in range(0, len(itm_results)):
-            manta = test_results[i]
+            manta = itm_results[i]
             res_array.append(manta['resolution'])
             env_array.append(manta['environment'])
             pat_array.append(manta['pattern'])
@@ -140,6 +119,40 @@ def main(args):
         axs[1, 1].hist(pos_array, bins=2)
         axs[1, 1].set_title("Pose")
         plt.savefig("hists_output.png")
+
+    if args.vis:
+        for i in range(0, len(itm_results)):
+            manta = itm_results[i]
+            #prediction = manta['prediction']
+            #class_index = manta['class_index']
+            image_class = manta['image_class']
+            image_id = manta['image_id']
+            resolution = manta['resolution']
+            environment = manta['environment']
+            pattern = manta['pattern']
+            pose = manta['pose']
+
+            fig = plt.figure(figsize=(12, 6))
+            fig.add_subplot(121)
+            #title = "Prediction: " + str(prediction) + ", Actual: " + str(class_index)
+            title = "Manta ID: " + str(image_class)
+            plt.title(title)
+            image = Image.open('dataset/mantas_cropped/' + image_id)
+            plt.imshow(image)
+            plt.axis('off')
+
+            fig.add_subplot(122)
+            plt.title('Image Quality')
+            plt.bar(np.arange(4), [resolution, environment, pattern, pose])
+            plt.ylim(0, 1)
+            plt.xticks(np.arange(4), ["sha", "env", "patt", "pose"])
+
+            if manta['k-rank'] == 0:
+                folder = 'results/preds_success/'
+            else:
+                folder = 'results/preds_failure/'
+
+            plt.savefig(folder + str(manta['image_class']) + "_" + str(i) + ".png")
 
 
 

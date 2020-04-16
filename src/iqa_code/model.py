@@ -9,7 +9,7 @@ class ImageShape(NamedTuple):
     channels: int
 
 class CNN(nn.Module):
-    def __init__(self, height: int, width: int, channels: int):
+    def __init__(self, height: int, width: int, channels: int, dropout: float):
         super().__init__()
         self.input_shape = ImageShape(height=height, width=width, channels=channels)
 
@@ -63,7 +63,6 @@ class CNN(nn.Module):
 
         # Output Layer - four units
         self.out = nn.Linear(1024, 4)
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, images: torch.Tensor) -> torch.Tensor:
         x = F.relu(self.bn32(self.conv1(images)))
@@ -77,7 +76,6 @@ class CNN(nn.Module):
         x = torch.flatten(x, start_dim=1)
         x = self.fc1(x)
         x = self.out(x)
-        x = self.sigmoid(x)
         return x
 
     @staticmethod

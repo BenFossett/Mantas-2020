@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 from multiprocessing import cpu_count
 
-from code.dataset import MantaIDDataset
-from code.trainer import Trainer
+from dataset import MantaIDDataset
+from trainer import Trainer
 
 import torch
 import torch.backends.cudnn
@@ -65,7 +65,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--checkpoint-path",
-    default=Path("checkpoint.pkl"),
+    default=Path("IDcheckpoint.pkl"),
     type=Path,
     help="Provide a file to store checkpoints of the model parameters during training."
 )
@@ -82,17 +82,17 @@ else:
     DEVICE = torch.device("cpu")
 
 def main(args):
-    train_data_path = 'dataset/train_data.pkl'
-    test_data_path = 'dataset/test_data.pkl'
+    train_data_path = 'src/dataset/train_data.pkl'
+    test_data_path = 'src/dataset/test_data.pkl'
 
     train_loader = torch.utils.data.DataLoader(
-        MantaDataset(train_data_path, mode=args.mode, train=True),
+        MantaIDDataset(train_data_path, train=True),
         batch_size=args.batch_size, shuffle=True, num_workers=8,
         pin_memory=True
     )
 
     test_loader = torch.utils.data.DataLoader(
-        MantaDataset(test_data_path, mode=args.mode, train=False),
+        MantaIDDataset(test_data_path, train=False),
         batch_size=args.batch_size, shuffle=True, num_workers=8,
         pin_memory=True
     )
@@ -100,6 +100,7 @@ def main(args):
     model = torchvision.models.inception_v3(pretrained=True)
     for param in model.parameters():
         param.requires_grad = False
+
     num_ftrs = model.AuxLogits.fc.in_features
     model.AuxLogits.fc = nn.Linear(num_ftrs, 100)
     num_ftrs = model.fc.in_features

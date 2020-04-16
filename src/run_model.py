@@ -61,7 +61,7 @@ def main(args):
     model.load_state_dict(checkpoint["model"])
     model.eval()
 
-    dataset = json.load(open("dataset/test_data.pkl"))['mantas']
+    dataset = pickle.load(open("src/dataset/test_data.pkl"))['mantas']
     results = {"mantas": []}
 
     classes = []
@@ -87,13 +87,7 @@ def main(args):
             'pose': np.round(prediction[0][3].item(), 2)
         })
 
-    with open('results/manta_quality.json', 'w') as outfile:
-        json.dump(results, outfile, indent=4)
-
-    with open('manta_id/cnn/dataset/manta_quality.json', 'w') as outfile:
-        json.dump(results, outfile, indent=4)
-
-    with open('manta_id/idthemanta/dataset/manta_quality.json', 'w') as outfile:
+    with open('src/results/quality_predictions.json', 'w') as outfile:
         json.dump(results, outfile, indent=4)
 
 if __name__ == "__main__":

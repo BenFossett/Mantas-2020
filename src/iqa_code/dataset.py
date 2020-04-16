@@ -6,11 +6,9 @@ import json
 from PIL import Image
 import pickle
 
-class MantaDataset(data.Dataset):
-    def __init__(self, data_path, mode, train):
+class MantaIQADataset(data.Dataset):
+    def __init__(self, data_path):
         self.dataset = pickle.load(open(data_path, 'rb'))['mantas']
-        self.mode = mode
-
         self.transforms = transforms.ToTensor()
 
     def __getitem__(self, index):

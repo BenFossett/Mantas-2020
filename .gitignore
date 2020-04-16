@@ -1,9 +1,10 @@
-
+*.json
 *.pkl
 *.png
 *.jpg
 *.csv
 old/
-dataset/mantas/
-dataset/mantas_cropped/
-manta_id/idthemanta/results/raw_results/
+src/dataset/mantas/
+src/dataset/mantas_cropped/
+src/dataset/data_binary.json
+results/

@@ -12,11 +12,11 @@ class App:
     def __init__(self, window, window_title, image_paths, continue_true):
         self.window = window
         self.window.title(window_title)
-        self.annotations = json.load(open('mantaAnnotations.json'))
+        self.annotations = json.load(open('dataset/mantaAnnotations.json'))
         self.annotations = self.annotations["annotations"][0]
 
-        if continue_true and os.path.exists('labels/data_binary.json'):
-            self.data = json.load(open('labels/data_binary.json'))
+        if continue_true and os.path.exists('dataset/data_binary.json'):
+            self.data = json.load(open('dataset/data_binary.json'))
             self.index = self.data['position']
         else:
             self.data = {}
@@ -111,7 +111,7 @@ class App:
             self.window.quit()
 
     def show_image(self, annotation):
-        path = "mantas/" + annotation["uniqueImageFileName"]
+        path = "dataset/mantas/" + annotation["uniqueImageFileName"]
         image = self._load_image(path, annotation)
         self.image = image
         #self.image = ImageTk.PhotoImage(image)
@@ -146,14 +146,14 @@ class App:
         return image
 
     def exit(self, event=None):
-        with open('labels/data_binary.json', 'w') as outfile:
+        with open('dataset/data_binary.json', 'w') as outfile:
             json.dump(self.data, outfile, indent=4)
         self.window.quit()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--folder', help='Input folder containing the images', default='mantas/')
+    parser.add_argument('--folder', help='Input folder containing the images', default='dataset/mantas/')
     parser.add_argument('--continue_true', help='Continue from where you left off', action='store_true')
     args = parser.parse_args()
 
