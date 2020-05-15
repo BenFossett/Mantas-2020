@@ -8,3 +8,5 @@ src/dataset/mantas/
 src/dataset/mantas_cropped/
 src/dataset/data_binary.json
 results/
+roc.py
+src/process_results.py

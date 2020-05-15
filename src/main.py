@@ -27,6 +27,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument("--log-dir", default=Path("logs"), type=Path)
 parser.add_argument("--learning-rate", default=1e-3, type=float, help="Learning rate")
+parser.add_argument("--momentum", default=0.0, type=float, help="Momentum")
 parser.add_argument("--dropout", default=0, type=float, help="Dropout")
 parser.add_argument(
     "--batch-size",
@@ -115,14 +116,14 @@ def main(args):
         num_ftrs = model.fc.in_features
         model.fc = nn.Sequential(
             nn.Linear(num_ftrs, 4),
-            nn.Dropout(p=args.dropout))
+            nn.Dropout(p=args.dropout),
+            nn.Sigmoid())
     else:
         print("No valid model selected, defaulting to custom CNN")
         model = CNN(height=512, width=512, channels=3, dropout=args.dropout)
 
     criterion = nn.MSELoss()
-    #criterion = nn.BCELoss()
-    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate)
+    optimizer = optim.SGD(model.parameters(), lr=args.learning_rate, momentum=args.momentum)
 
     log_dir = get_summary_writer_log_dir(args)
     print(f"Writing logs to {log_dir}")

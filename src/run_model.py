@@ -3,8 +3,7 @@ import time
 from multiprocessing import cpu_count
 from typing import Union, NamedTuple
 
-from data.dataset import MantaDataset
-from utils.images import imshow
+from iqa_code.dataset import MantaIQADataset
 
 import torch
 import torch.backends.cudnn
@@ -30,7 +29,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--checkpoint-path",
-    default=Path("trained_models/checkpoint_finetune.pkl"),
+    default=Path("src/trained_models/checkpoint_finetune.pkl"),
     type=Path,
     help="Provide a file to store checkpoints of the model parameters during training."
 )
@@ -57,11 +56,11 @@ def main(args):
         nn.Linear(num_ftrs, 4),
         nn.Sigmoid())
 
-    checkpoint = torch.load("checkpoint_finetune.pkl", map_location=DEVICE)
+    checkpoint = torch.load(args.checkpoint_path, map_location=DEVICE)
     model.load_state_dict(checkpoint["model"])
     model.eval()
 
-    dataset = pickle.load(open("src/dataset/test_data.pkl"))['mantas']
+    dataset = pickle.load(open('src/dataset/test_data.pkl', 'rb'))['mantas']
     results = {"mantas": []}
 
     classes = []
@@ -81,7 +80,7 @@ def main(args):
             'image_id': manta['image_id'],
             'image_class': image_class,
             'class_index': class_index,
-            'resolution': np.round(prediction[0][0].item(), 2),
+            'sharpness': np.round(prediction[0][0].item(), 2),
             'environment': np.round(prediction[0][1].item(), 2),
             'pattern': np.round(prediction[0][2].item(), 2),
             'pose': np.round(prediction[0][3].item(), 2)

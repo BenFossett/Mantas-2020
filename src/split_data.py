@@ -7,32 +7,33 @@ import argparse
 
 def split_data(mantas, classes):
     train_data = {'mantas': []}
+    validation_data = {'mantas': []}
     test_data = {'mantas': []}
 
     for i, manta in enumerate(mantas):
         manta['image'] = np.asarray(Image.open('dataset/mantas_cropped/' + manta['image_id']))
         manta['class_index'] = classes.index(manta['image_class'])
 
-        if i % 10 < 8:
+        if i % 10 < 7:
             train_data['mantas'].append(manta)
+        elif i % 10 < 8:
+            validation_data['mantas'].append(manta)
         else:
             test_data['mantas'].append(manta)
 
     print(len(train_data['mantas']))
+    print(len(validation_data['mantas']))
     print(len(test_data['mantas']))
 
     with open('dataset/train_data.pkl', 'wb') as outfile:
         pickle.dump(train_data, outfile)
 
-    with open('manta_id/cnn/dataset/train_data.pkl', 'wb') as outfile:
-        pickle.dump(train_data, outfile)
+    with open('dataset/validation_data.pkl', 'wb') as outfile:
+        pickle.dump(validation_data, outfile)
 
     with open('dataset/test_data.pkl', 'wb') as outfile:
         pickle.dump(test_data, outfile)
 
-    with open('manta_id/cnn/dataset/test_data.pkl', 'wb') as outfile:
-        pickle.dump(test_data, outfile)
-        
 
 def split_data_folders(mantas):
     train_count = 0

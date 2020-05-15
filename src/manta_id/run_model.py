@@ -2,7 +2,6 @@
 import time
 from multiprocessing import cpu_count
 from typing import Union, NamedTuple
-from utils.images import imshow
 
 import torch
 import torch.backends.cudnn
@@ -28,7 +27,7 @@ parser = argparse.ArgumentParser(
 )
 parser.add_argument(
     "--checkpoint-path",
-    default=Path("checkpoint_id.pkl"),
+    default=Path("src/trained_models/checkpoint_id.pkl"),
     type=Path,
     help="Provide a file to store checkpoints of the model parameters during training."
 )
@@ -63,7 +62,6 @@ def topk_accuracy(
     return result
 
 def image_loader(image):
-    to_tensor = transforms.ToTensor()
     image = Image.fromarray(image)
     transform = transforms.Compose([
         transforms.Resize(299),
@@ -87,7 +85,7 @@ def main(args):
     model.load_state_dict(checkpoint["model"])
     model.eval()
 
-    dataset = json.load(open('dataset/manta_quality.pkl'))['mantas']
+    dataset = pickle.load(open('src/dataset/test_data.pkl', 'rb'))['mantas']
     results = {"mantas": []}
 
     for manta in dataset:
@@ -103,7 +101,7 @@ def main(args):
         ind = ind.cpu().numpy()
         rank = np.where(ind == class_index)[0]
 
-        resolution = manta['resolution']
+        sharpness = manta['sharpness']
         environment = manta['environment']
         pattern = manta['pattern']
         pose = manta['pose']
@@ -115,13 +113,13 @@ def main(args):
             'prediction': prediction.tolist(),
             'confidence': confidence.tolist(),
             'k-rank': int(rank[0]),
-            'resolution': resolution,
+            'sharpness': sharpness,
             'environment': environment,
             'pattern': pattern,
             'pose': pose
         })
 
-    with open('data/id_results.json', 'w') as outfile:
+    with open('src/results/idcnn_results.json', 'w') as outfile:
         json.dump(results, outfile, indent=4)
 
 if __name__ == "__main__":

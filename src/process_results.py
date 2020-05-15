@@ -10,6 +10,8 @@ parser.add_argument('--accs', help='Get per-label thresholded accuracies', actio
 parser.add_argument('--topk', help='Top-K Accuracy (to be used with --accs argument)', type=int, default=1)
 parser.add_argument('--hists', help='Get histograms for each label', action='store_true')
 parser.add_argument('--vis', help='Visualise images with quality labels', action='store_true')
+parser.add_argument('--best', help='Find best combination of quality labels', action='store_true')
+parser.add_argument('--confidence', help='Generate confidence histograms', action='store_true')
 
 def get_manta(image_id, mantas):
     for manta in mantas:
@@ -35,7 +37,7 @@ def find_best_combo(data, topk):
                     num_correct = 0
 
                     for manta in data:
-                        sharpness = manta['resolution']
+                        sharpness = manta['sharpness']
                         environment = manta['environment']
                         pattern = manta['pattern']
                         pose = manta['pose']
@@ -54,7 +56,8 @@ def find_best_combo(data, topk):
                         best_env = curr_env
                         best_patt = curr_patt
                         best_pose = curr_pose
-    return (best_acc, best_sharp, best_env, best_patt, best_pose)
+                        best_num = num_mantas
+    return (best_acc, best_sharp, best_env, best_patt, best_pose, best_num)
 
 def accuracy_threshold(data, threshold, label, topk):
     num_mantas = 0
@@ -72,39 +75,40 @@ def accuracy_threshold(data, threshold, label, topk):
 
 def main(args):
     gt_labels = json.load(open('dataset/quality_labels.json'))['mantas']
-    cnn_results = json.load(open('manta_id/cnn/results/test_results.json'))['mantas']
-    itm_results = json.load(open('manta_id/idthemanta/results/test_results.json'))['mantas']
+    idcnn_results = json.load(open('results/idcnn_results.json'))['mantas']
+    itm_results = json.load(open('results/itm_results.json'))['mantas']
+    mm_results = json.load(open('results/mm_results.json'))['mantas']
 
     if args.accs:
-        res_accs = np.zeros(10)
+        sha_accs = np.zeros(10)
         env_accs = np.zeros(10)
         patt_accs = np.zeros(10)
         pose_accs = np.zeros(10)
 
         threshold = 0.0
         for i in range(0, 10):
-            res_accs[i] = accuracy_threshold(itm_results, threshold, "resolution", args.topk)
-            env_accs[i] = accuracy_threshold(itm_results, threshold, "environment", args.topk)
-            patt_accs[i] = accuracy_threshold(itm_results, threshold, "pattern", args.topk)
-            pose_accs[i] = accuracy_threshold(itm_results, threshold, "pose", args.topk)
+            sha_accs[i] = accuracy_threshold(mm_results, threshold, "sharpness", args.topk)
+            env_accs[i] = accuracy_threshold(mm_results, threshold, "environment", args.topk)
+            patt_accs[i] = accuracy_threshold(mm_results, threshold, "pattern", args.topk)
+            pose_accs[i] = accuracy_threshold(mm_results, threshold, "pose", args.topk)
             threshold += 0.1
 
         accs = np.zeros((4, 10))
-        accs[0] = res_accs
+        accs[0] = sha_accs
         accs[1] = env_accs
         accs[2] = patt_accs
         accs[3] = pose_accs
         print(accs)
-        np.savetxt("manta_id/idthemanta/results/per_label_accuracies_rank=" + str(args.topk) + ".csv", accs, delimiter=",")
+        np.savetxt("results/mm_per_label_accuracies_rank=" + str(args.topk) + ".csv", accs, delimiter=",")
 
     if args.hists:
-        res_array = []
+        sha_array = []
         env_array = []
         pat_array = []
         pos_array = []
-        for i in range(0, len(itm_results)):
+        for i in range(0, len(mm_results)):
             manta = itm_results[i]
-            res_array.append(manta['resolution'])
+            sha_array.append(manta['sharpness'])
             env_array.append(manta['environment'])
             pat_array.append(manta['pattern'])
             pos_array.append(manta['pose'])
@@ -121,7 +125,7 @@ def main(args):
         plt.savefig("hists_output.png")
 
     if args.vis:
-        for i in range(0, len(itm_results)):
+        for i in range(0, len(mm_results)):
             manta = itm_results[i]
             #prediction = manta['prediction']
             #class_index = manta['class_index']

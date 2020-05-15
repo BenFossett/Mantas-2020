@@ -16,11 +16,11 @@ class MantaIQADataset(data.Dataset):
         image = Image.fromarray(manta['image'])
         image_tensor = self.transforms(image)
 
-        resolution = manta['resolution']
+        sharpness = manta['sharpness']
         environment = manta['environment']
         pattern = manta['pattern']
         pose = manta['pose']
-        targets = torch.tensor([resolution, environment, pattern, pose])
+        targets = torch.tensor([sharpness, environment, pattern, pose])
 
         return image_tensor, targets
 
